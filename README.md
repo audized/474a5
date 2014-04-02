@@ -75,11 +75,35 @@ GET /rating/tea-x -> { "rating": 3, "choices": [ 3 ], "clocks": [ { "c0": 7, "c1
 
 ## Vector Clock Examples
 
-We have provided David Drysdale's implementation of vector clocks in the file vectorclock.py
-You only need to call the functions. Here are examples of the functions you might use.
+UPDATED APRIL 1, 22:30:
 
-Hint: you will have to develop an algorithm similar to VectorClock.converge(). You will
-not be able to use the function itself, though. (Why?)
+HINT: The key algorithm in this assignment is merging a vector clock into a
+list of vector clocks. This is challenging because the new clock might
+replace several old clocks, provided they are all less than the new
+clock. Or the new clock itself may be less than one or more clocks
+already in the list, in which case the list is unchanged.
+
+Consider this:
+
+1. The clock list (‘clocks’) you read from the database will already
+be as reduced as it can be: Every clock value in the list will be
+incomparable to every other. (Why?)
+
+2. You now have a new clock value. You want to pass over the clocks
+list, building a replacement list that only includes values >= or
+incomparable to the new value.
+
+3. If the new clock value is incomparable to every value in the
+replacement list, add the new clock value to that list.
+
+4. The resulting replacement clock list will, like the original list,
+be as reduced as it can be (see #1).
+
+As I said, you can do it in a single pass over the list.
+
+We have provided David Drysdale's implementation of vector clocks in
+the file vectorclock.py You only need to call the functions. Here are
+examples of the functions you might use.
 
 ### Creating a vector clock
 

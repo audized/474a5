@@ -40,7 +40,7 @@ class VectorClock(object):
     def isValidClock(self):
         """ Return True if this is a valid clock. """
         for node, count in self.clock.iteritems():
-            if not isinstance(node, str) or not isinstance(count, int) or count < 0:
+            if not isinstance(node, (str, unicode)) or not isinstance(count, int) or count < 0:
                 return False
         return True
 
@@ -81,6 +81,7 @@ class VectorClock(object):
         return (self == other) or (self > other)
 
 # PART coalesce
+# CAUTION--HAS BUG AND IS MORE COMPLEX THAN NEEDED FOR THIS ASSIGNMENT
     @classmethod
     def coalesce(cls, vcs):
         """Coalesce a container of VectorClock objects.
@@ -105,6 +106,7 @@ class VectorClock(object):
         return results
 
 # PART coalesce2
+# CAUTION--HAS BUG AND IS MORE COMPLEX THAN NEEDED FOR THIS ASSIGNMENT
     @classmethod
     def coalesce2(cls, vcs):
         """Coalesce a container of (object, VectorClock) tuples.

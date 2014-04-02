@@ -53,11 +53,64 @@ def put_rating(entity):
 
 	# YOUR CODE GOES HERE
 	# REPLACE THE FOLLOWING LINE
-	finalrating = setrating
+	# HINT: CONSIDER USING THE HASH DATA TYPE IN REDIS (HGET/HSET/...)
+	old_rating = client.hget(key, 'rating')
+
+	# if rating does not exist, add it. Otherwise..
 	# SET THE RATING, CHOICES, AND CLOCKS IN THE DATABASE FOR THIS KEY
 	# COMPUTE THE MEAN, finalrating
+	if not old_rating:
+		client.hset(key, 'rating', setrating)
+		client.hset(key, 'choices', [setrating])
+		client.hset(key, 'clocks', jsonify_vcl([setclock]))
+		finalrating = setrating
+	else:
+		finalrating = old_rating
+		choices = eval(client.hget(key, 'choices'))
+		vcl = eval(client.hget(key, 'clocks'))
+		new_vcl = []
+		new_choices = []
+		greaterThanAlreadyFound = False
+		needToUpdateDB = True
+		for i in range(0, len(vcl)):
+			old_clock = VectorClock.fromDict(vcl[i])
+			# if the received clock is older, nothing needs updating
+			if setclock <= old_clock:
+				needToUpdateDB = False
+				break
+			else:
+				# if the received clock is newer, make changes accordingly
+				if setclock > old_clock:
+					# If we have not found an older clock and replaced it with the 
+					# new one previously, put this new clock in. Otherwise, ignore.
+					if not greaterThanAlreadyFound:
+						greaterThanAlreadyFound = True
+						new_vcl.append(setclock)
+						new_choices.append(setrating)
+				# incomparable
+				else:
+					new_vcl.append(old_clock)
+					new_choices.append(choices[i])
 
-	# HINT: CONSIDER USING THE HASH DATA TYPE IN REDIS (HGET/HSET/...)
+		# Update DB only if the received clock is not older than or the same as any of the 			# existing clocks
+		if needToUpdateDB:
+			# if the received clock is not newer than any of the existing clocks, it's
+			# incomparable
+			if not greaterThanAlreadyFound:
+				new_vcl.append(setclock)
+				new_choices.append(setrating)
+
+			# calculate the new rating
+			ratingSum = 0.0
+			for choice in new_choices:
+				ratingSum+=choice
+			finalrating = ratingSum/len(new_choices)
+
+			# update DB
+			client.hset(key, 'rating', finalrating)
+			client.hset(key, 'choices', new_choices)
+			client.hset(key, 'clocks', jsonify_vcl(new_vcl))
+				
 
 	# Return the new rating for the entity
 	return {
@@ -73,10 +126,12 @@ def put_rating(entity):
 def get_rating(entity):
 	# YOUR CODE GOES HERE
 	# REPLACE THE FOLLOWING LINES
+	key = '/rating/'+entity
 	return {
-		"rating":  '5.0',
-        "choices": '[5.0]',
-		"clocks":  '[{"c1":0}]'
+		"rating": client.hget(key, 'rating'),
+        	"choices": client.hget(key, 'choices'),
+		"clocks": client.hget(key, 'clocks')
+		#"clocks":  '[{"c1":0}]'
 	}
 
 # Add a route for deleting all the rating information which can be accessed as:
@@ -88,6 +143,26 @@ def delete_rating(entity):
 	count = client.delete('/rating/'+entity)
 	if count == 0: return abort(404)
 	return { "rating": None }
+
+# Turn a list of vector clocks into a JSON formatted string to be stored in redis
+def jsonify_vcl(vcl):
+	i = 0
+	json_str = '['
+	#json_str = ''
+	for vc in vcl:
+		json_str = json_str+'{'
+		i += 1
+		j = 0
+		for key in vc.clock.keys():
+			json_str = json_str+'"'+key+'"'+': '+str(vc.clock[key])
+			j+=1
+			if j < len(vc.clock.keys()):
+				json_str = json_str+', '
+		json_str = json_str+'}'
+		if i < len(vcl):
+			json_str = json_str + ', '
+	json_str = json_str+']'
+	return json_str
 
 # Fire the engines
 if __name__ == '__main__':
