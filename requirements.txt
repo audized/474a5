@@ -1,0 +1,5 @@
+redis
+bottle
+mimeparse
+requests
+termcolor

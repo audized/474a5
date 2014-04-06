@@ -138,14 +138,14 @@ def result(r):
 	output.write(json.dumps(r)+'\n')
 	output.flush()
 
-def testResult(rgot, rexp, choicesgot, choicesexp, clocksgot, clocksexp):
+def testResult(result, rgot, rexp, choicesgot, choicesexp, clocksgot, clocksexp):
     result({ 'type': 'EXPECT_RATING', 'got': rgot, 'expected': rexp})
     result({ 'type': 'EXPECT_CHOICES', 'got': choicesgot, 'expected': choicesexp })
     result({ 'type': 'EXPECT_CLOCKS', 'got': [c.asDict() for c in clocksgot], 'expected' : [c.asDict() for c in clocksexp] })
 
-def getAndTest(item, rexp, choicesexp, clocksexp):
+def getAndTest(result, item, rexp, choicesexp, clocksexp):
     r, ch, cl = get(item)
-    testResult(r, rexp, ch, choicesexp, cl, clocksexp)
+    testResult(result, r, rexp, ch, choicesexp, cl, clocksexp)
 
 def makeVC(cl, count):
     return VectorClock().update(cl, count)
@@ -216,7 +216,7 @@ def simple(result):
     cv = VectorClock().update('c0', time)
     put(ITEM, rating, cv)
     r, choices, clocks = get(ITEM)
-    testResult(r, rating, choices, [rating], clocks, [cv])
+    testResult(result, r, rating, choices, [rating], clocks, [cv])
 
 @test()
 def moreRecentData(result):
@@ -226,7 +226,7 @@ def moreRecentData(result):
     finalvc =  VectorClock().update('c0', 3)
     put(ITEM, finalr, finalvc)
     r, choices, clocks = get(ITEM)
-    testResult(r, finalr, choices, [finalr], clocks, [finalvc])
+    testResult(result, r, finalr, choices, [finalr], clocks, [finalvc])
 
 @test()
 def staleData(result):
@@ -236,7 +236,7 @@ def staleData(result):
     put(ITEM, finalr, finalvc)
     put(ITEM, 1, VectorClock().update('c0', 1))
     r, choices, clocks = get(ITEM)
-    testResult(r, finalr, choices, [finalr], clocks, [finalvc])
+    testResult(result, r, finalr, choices, [finalr], clocks, [finalvc])
 
 @test()
 def inComparableData(result):
@@ -248,7 +248,7 @@ def inComparableData(result):
     put(ITEM, r1, vc1)
     put(ITEM, r2, vc2)
     r, choices, clocks = get(ITEM)
-    testResult(r, (r1+r2)/2.0, choices, [r1, r2], clocks, [vc1, vc2])
+    testResult(result, r, (r1+r2)/2.0, choices, [r1, r2], clocks, [vc1, vc2])
 
 @test()
 def coalescableData(result):
@@ -263,46 +263,46 @@ def coalescableData(result):
     vc3 = VectorClock().update('c0',7).update('c1',10)
     put(ITEM, r3, vc3)
     r, choices, clocks = get(ITEM)
-    testResult(r, r3, choices, [r3], clocks, [vc3])
+    testResult(result, r, r3, choices, [r3], clocks, [vc3])
 
 @test()
 def longerSequence(result):
     # Long sequence of updates
     vc4 = makeVC('c4',100)
     put(ITEM, 10, vc4)
-    getAndTest(ITEM, 10, [10], [vc4])
+    getAndTest(result, ITEM, 10, [10], [vc4])
 
     vc5 = makeVC('c5',6)
     put(ITEM, 2, vc5)
-    getAndTest(ITEM, 6, [10, 2], [vc4, vc5])
+    getAndTest(result, ITEM, 6, [10, 2], [vc4, vc5])
 
     vc23 = makeVC('c23',12)
     put(ITEM, 3, vc23)
-    getAndTest(ITEM, 5, [10, 2, 3], [vc4, vc5, vc23])
+    getAndTest(result, ITEM, 5, [10, 2, 3], [vc4, vc5, vc23])
 
     vc5_23 = makeVC('c5', 21).update('c23', 13)
     put(ITEM, 8, vc5_23)
-    getAndTest(ITEM, 9, [10, 8], [vc4, vc5_23])
+    getAndTest(result, ITEM, 9, [10, 8], [vc4, vc5_23])
 
     vc4_5 = makeVC('c4', 101).update('c5', 6)
     put(ITEM, 6, vc4_5)
-    getAndTest(ITEM, 7, [6, 8], [vc4_5, vc5_23])
+    getAndTest(result, ITEM, 7, [6, 8], [vc4_5, vc5_23])
 
     vc5_23_bis = makeVC('c5', 21).update('c23', 21)
     put(ITEM, 2, vc5_23_bis)
-    getAndTest(ITEM, 4, [6, 2], [vc4_5, vc5_23_bis])
+    getAndTest(result, ITEM, 4, [6, 2], [vc4_5, vc5_23_bis])
 
     vc4_5_23 = makeVC('c4',102).update('c5',21).update('c23',12)
     put(ITEM, 20, vc4_5_23)
-    getAndTest(ITEM, 11, [20,2], [vc4_5_23, vc5_23_bis])
+    getAndTest(result, ITEM, 11, [20,2], [vc4_5_23, vc5_23_bis])
 
     vc4_23 = makeVC('c4',99).update('c23',12)
     put(ITEM, 30, vc4_23) # No effect---outdated clock
-    getAndTest(ITEM, 11, [20,2], [vc4_5_23, vc5_23_bis])
+    getAndTest(result, ITEM, 11, [20,2], [vc4_5_23, vc5_23_bis])
 
     vc4_5_23_bis = makeVC('c4',102).update('c5',21).update('c23',40)
     put(ITEM, 18, vc4_5_23_bis)
-    getAndTest(ITEM, 18, [18], [vc4_5_23_bis])
+    getAndTest(result, ITEM, 18, [18], [vc4_5_23_bis])
 
 # Go through all the tests and run them
 try:

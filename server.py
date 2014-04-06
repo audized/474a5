@@ -92,7 +92,8 @@ def put_rating(entity):
 					new_vcl.append(old_clock)
 					new_choices.append(choices[i])
 
-		# Update DB only if the received clock is not older than or the same as any of the 			# existing clocks
+		# Update DB only if the received clock is not older than or the same as any of the
+		# existing clocks
 		if needToUpdateDB:
 			# if the received clock is not newer than any of the existing clocks, it's
 			# incomparable
@@ -131,7 +132,6 @@ def get_rating(entity):
 		"rating": client.hget(key, 'rating'),
         	"choices": client.hget(key, 'choices'),
 		"clocks": client.hget(key, 'clocks')
-		#"clocks":  '[{"c1":0}]'
 	}
 
 # Add a route for deleting all the rating information which can be accessed as:
